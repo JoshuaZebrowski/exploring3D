@@ -132,43 +132,185 @@ function createTileGeometry(type) {
 // Function to create a castle
 function createCastle(x, y, z) {
     const castle = new THREE.Group();
-    
-    // Main keep
-    const keepGeometry = new THREE.BoxGeometry(4, 8, 4);
-    const keepMaterial = new THREE.MeshPhongMaterial({ color: COLORS.CASTLE_WALL });
-    const keep = new THREE.Mesh(keepGeometry, keepMaterial);
-    keep.position.set(0, 4, 0);
-    
-    // Roof
-    const roofGeometry = new THREE.ConeGeometry(3, 2, 4);
-    const roofMaterial = new THREE.MeshPhongMaterial({ color: COLORS.CASTLE_ROOF });
-    const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-    roof.position.set(0, 9, 0);
-    
-    // Towers
-    const createTower = (xPos, zPos) => {
-        const towerGroup = new THREE.Group();
-        const towerGeometry = new THREE.CylinderGeometry(0.8, 1, 10, 8);
-        const tower = new THREE.Mesh(towerGeometry, keepMaterial);
-        const towerRoof = new THREE.Mesh(
-            new THREE.ConeGeometry(1, 1.5, 8),
-            roofMaterial
+
+    // Materials
+    const stoneMaterial = new THREE.MeshPhongMaterial({
+        color: 0x808080,
+        roughness: 0.8,
+        metalness: 0.2
+    });
+
+    const woodMaterial = new THREE.MeshPhongMaterial({
+        color: 0x5c4033,
+        roughness: 0.9,
+        metalness: 0.1
+    });
+
+    // Castle dimensions
+    const castleWidth = 8;      // Original size
+    const castleLength = 10;    // Original size
+    const wallHeight = 4;       // Original size
+    const towerSize = 2;        // Original size
+    const towerHeight = 6;      // Original size
+    const gateHeight = 1.5;     // Scaled for smaller player
+    const gateWidth = 1.2;      // Scaled for smaller player
+    const anteriorDepth = 4;    // Original size
+
+    // Create tower
+    function createTower(px, py, pz) {
+        const tower = new THREE.Group();
+        
+        // Main tower body
+        const towerGeo = new THREE.BoxGeometry(towerSize, towerHeight, towerSize);
+        const towerMesh = new THREE.Mesh(towerGeo, stoneMaterial);
+        
+        // Crenellations
+        for(let x = -1; x <= 1; x++) {
+            for(let z = -1; z <= 1; z++) {
+                if(x === 0 && z === 0) continue;
+                const crenel = new THREE.BoxGeometry(0.6, 1, 0.6);
+                const crenelMesh = new THREE.Mesh(crenel, stoneMaterial);
+                crenelMesh.position.set(
+                    x * (towerSize/3),
+                    towerHeight/2 + 0.5,
+                    z * (towerSize/3)
+                );
+                tower.add(crenelMesh);
+            }
+        }
+        
+        tower.add(towerMesh);
+        tower.position.set(px, py + towerHeight/2, pz);
+        return tower;
+    }
+
+    // Create walls
+    function createWall(startPoint, endPoint) {
+        const wallGroup = new THREE.Group();
+        
+        const length = startPoint.distanceTo(endPoint);
+        const wallGeo = new THREE.BoxGeometry(length, wallHeight, 1);
+        const wall = new THREE.Mesh(wallGeo, stoneMaterial);
+        
+        // Calculate rotation to point from start to end
+        const angle = Math.atan2(endPoint.x - startPoint.x, endPoint.z - startPoint.z);
+        wall.rotation.y = angle;
+        
+        // Position wall between points
+        wall.position.set(
+            (startPoint.x + endPoint.x) / 2,
+            wallHeight/2,
+            (startPoint.z + endPoint.z) / 2
         );
-        tower.position.set(0, 5, 0);
-        towerRoof.position.set(0, 10.5, 0);
-        towerGroup.add(tower);
-        towerGroup.add(towerRoof);
-        towerGroup.position.set(xPos, 0, zPos);
-        return towerGroup;
-    };
+        
+        // Add crenellations
+        const numCrenels = Math.floor(length);
+        for(let i = 0; i < numCrenels; i++) {
+            const crenel = new THREE.BoxGeometry(0.6, 1, 0.6);
+            const crenelMesh = new THREE.Mesh(crenel, stoneMaterial);
+            const offset = (i - (numCrenels-1)/2);
+            crenelMesh.position.set(offset, wallHeight/2 + 0.5, 0);
+            wall.add(crenelMesh);
+        }
+        
+        wallGroup.add(wall);
+        return wallGroup;
+    }
+
+    // Create gatehouse with detailed gate
+    function createGatehouse() {
+        const gatehouse = new THREE.Group();
+        
+        // Main gatehouse structure
+        const gateGeo = new THREE.BoxGeometry(6, wallHeight + 2, anteriorDepth);
+        const gateMesh = new THREE.Mesh(gateGeo, stoneMaterial);
+        gateMesh.position.y = (wallHeight + 2)/2;
+        
+        // Gate opening (archway)
+        const archGeo = new THREE.BoxGeometry(gateWidth, gateHeight, anteriorDepth + 0.5);
+        const arch = new THREE.Mesh(archGeo, new THREE.MeshBasicMaterial({ color: 0x000000 }));
+        arch.position.set(0, gateHeight/2, 0);
+        
+        // Wooden gate doors
+        const doorGeo = new THREE.BoxGeometry(gateWidth/2, gateHeight, 0.2);
+        const leftDoor = new THREE.Mesh(doorGeo, woodMaterial);
+        const rightDoor = new THREE.Mesh(doorGeo, woodMaterial);
+        leftDoor.position.set(-gateWidth/4, gateHeight/2, anteriorDepth/2);
+        rightDoor.position.set(gateWidth/4, gateHeight/2, anteriorDepth/2);
+        
+        gatehouse.add(gateMesh, arch, leftDoor, rightDoor);
+        return gatehouse;
+    }
+
+    // Create anterior (outer bailey)
+    function createAnterior() {
+        const anterior = new THREE.Group();
+        
+        // Create anterior walls
+        const leftWall = createWall(
+            new THREE.Vector3(-castleWidth/2 - 4, 0, -castleLength/2 - anteriorDepth),
+            new THREE.Vector3(-castleWidth/2 - 4, 0, -castleLength/2)
+        );
+        const rightWall = createWall(
+            new THREE.Vector3(castleWidth/2 + 4, 0, -castleLength/2 - anteriorDepth),
+            new THREE.Vector3(castleWidth/2 + 4, 0, -castleLength/2)
+        );
+        const frontWall = createWall(
+            new THREE.Vector3(-castleWidth/2 - 4, 0, -castleLength/2 - anteriorDepth),
+            new THREE.Vector3(-3, 0, -castleLength/2 - anteriorDepth)
+        );
+        const frontWall2 = createWall(
+            new THREE.Vector3(3, 0, -castleLength/2 - anteriorDepth),
+            new THREE.Vector3(castleWidth/2 + 4, 0, -castleLength/2 - anteriorDepth)
+        );
+        
+        // Add towers at the corners of the anterior
+        const frontLeftTower = createTower(-castleWidth/2 - 4, 0, -castleLength/2 - anteriorDepth);
+        const frontRightTower = createTower(castleWidth/2 + 4, 0, -castleLength/2 - anteriorDepth);
+        
+        anterior.add(leftWall, rightWall, frontWall, frontWall2, frontLeftTower, frontRightTower);
+        return anterior;
+    }
+
+    // Add main components
+    // Main castle towers
+    castle.add(createTower(-castleWidth/2, y, -castleLength/2)); // Front left
+    castle.add(createTower(castleWidth/2, y, -castleLength/2));  // Front right
+    castle.add(createTower(-castleWidth/2, y, castleLength/2)); // Back left
+    castle.add(createTower(castleWidth/2, y, castleLength/2));  // Back right
+    castle.add(createTower(-castleWidth/4, y, castleLength/2)); // Middle left
+    castle.add(createTower(castleWidth/4, y, castleLength/2));  // Middle right
+
+    // Main castle walls
+    castle.add(createWall(
+        new THREE.Vector3(-castleWidth/2, y, -castleLength/2),
+        new THREE.Vector3(-3, y, -castleLength/2)
+    )); // Front left wall
+    castle.add(createWall(
+        new THREE.Vector3(3, y, -castleLength/2),
+        new THREE.Vector3(castleWidth/2, y, -castleLength/2)
+    )); // Front right wall
+    castle.add(createWall(
+        new THREE.Vector3(-castleWidth/2, y, castleLength/2),
+        new THREE.Vector3(castleWidth/2, y, castleLength/2)
+    )); // Back wall
+    castle.add(createWall(
+        new THREE.Vector3(-castleWidth/2, y, -castleLength/2),
+        new THREE.Vector3(-castleWidth/2, y, castleLength/2)
+    )); // Left wall
+    castle.add(createWall(
+        new THREE.Vector3(castleWidth/2, y, -castleLength/2),
+        new THREE.Vector3(castleWidth/2, y, castleLength/2)
+    )); // Right wall
+
+    // Add gatehouse and anterior
+    const gatehouse = createGatehouse();
+    gatehouse.position.z = -castleLength/2;
+    castle.add(gatehouse);
     
-    castle.add(keep);
-    castle.add(roof);
-    castle.add(createTower(3, 3));
-    castle.add(createTower(-3, 3));
-    castle.add(createTower(3, -3));
-    castle.add(createTower(-3, -3));
-    
+    const anterior = createAnterior();
+    castle.add(anterior);
+
     castle.position.set(x, y, z);
     return castle;
 }
@@ -279,19 +421,19 @@ scene.add(directionalLight);
 
 // Camera and control variables
 const baseSpeed = 0.2;
-const firstPersonSpeed = 0.1; // Slower speed for first person mode
+const firstPersonSpeed = 0.1;
 const sprintMultiplier = 2.0;
-const firstPersonSprintMultiplier = 1.5; // Slightly slower sprint for first person
+const firstPersonSprintMultiplier = 1.5;
 const mouseSensitivity = 0.005;
 let cameraDistance = 30;
-const minZoom = 10;  // Minimum zoom distance
-const maxZoom = 50;  // Maximum zoom distance
-const zoomSpeed = 1.0;  // Speed of zooming
+const minZoom = 10;
+const maxZoom = 50;
+const zoomSpeed = 1.0;
 let cameraAngleHorizontal = 0;
 let cameraAngleVertical = Math.PI / 4;
 let cameraTarget = new THREE.Vector3(0, 0, 0);
 let isFirstPerson = false;
-let playerHeight = 1.7; // Height of the player in first person view
+let playerHeight = 0.8; // Reduced player height to make castle feel larger
 
 const keys = {
     w: false,
@@ -370,14 +512,14 @@ function updateCameraPosition() {
         // First person movement with slower speed
         if (keys.w) newTarget.add(forward.multiplyScalar(firstPersonMoveSpeed));
         if (keys.s) newTarget.sub(forward.multiplyScalar(firstPersonMoveSpeed));
-        if (keys.a) newTarget.add(right.multiplyScalar(firstPersonMoveSpeed));
-        if (keys.d) newTarget.sub(right.multiplyScalar(firstPersonMoveSpeed));
+        if (keys.a) newTarget.add(right.multiplyScalar(firstPersonMoveSpeed)); // Fixed left movement
+        if (keys.d) newTarget.sub(right.multiplyScalar(firstPersonMoveSpeed)); // Fixed right movement
     } else {
         // Top down movement with normal speed
         if (keys.w) newTarget.sub(forward.multiplyScalar(moveSpeed));
         if (keys.s) newTarget.add(forward.multiplyScalar(moveSpeed));
-        if (keys.a) newTarget.add(right.multiplyScalar(moveSpeed));
-        if (keys.d) newTarget.sub(right.multiplyScalar(moveSpeed));
+        if (keys.a) newTarget.sub(right.multiplyScalar(moveSpeed));
+        if (keys.d) newTarget.add(right.multiplyScalar(moveSpeed));
 
         // Update target height based on arrow keys
         if (keys.arrowup) newTarget.y += moveSpeed;

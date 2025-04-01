@@ -14,9 +14,148 @@
             height: 100%;
             display: block;
         }
+        #weatherControls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+        }
+        #perspectiveControls {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+        }
+        .weather-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .weather-btn:hover {
+            background: rgba(255, 255, 255, 1);
+        }
+        .weather-btn.active {
+            background: #4CAF50;
+            color: white;
+        }
+        .perspective-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .perspective-btn:hover {
+            background: rgba(255, 255, 255, 1);
+        }
+        .perspective-btn.active {
+            background: #4CAF50;
+            color: white;
+        }
+        #infoBtn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        #infoBtn:hover {
+            background: rgba(255, 255, 255, 1);
+        }
+        #infoModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            z-index: 1000;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+        }
+        #infoModal .modal-content {
+            height: 100%;
+            overflow-y: auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #infoModal h2 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        #infoModal h3 {
+            color: #666;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        #infoModal ul {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 20px 0;
+        }
+        #infoModal li {
+            margin: 10px 0;
+            color: #444;
+        }
+        #infoModal .key {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            font-family: monospace;
+            margin-right: 8px;
+            color: #333;
+        }
+        #closeInfo {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 5px 10px;
+        }
+        #closeInfo:hover {
+            color: #333;
+        }
     </style>
 </head>
 <body>
+    <div id="weatherControls">
+        <button class="weather-btn active" id="sunnyBtn">Sunny</button>
+        <button class="weather-btn" id="nightBtn">Night</button>
+        <button class="weather-btn" id="rainBtn">Rain</button>
+        <button class="weather-btn" id="stormBtn">Thunderstorm</button>
+    </div>
+    <div id="perspectiveControls">
+        <button class="perspective-btn active" id="topDownBtn">Top Down</button>
+        <button class="perspective-btn" id="firstPersonBtn">First Person</button>
+    </div>
+    <button id="infoBtn">Controls (?)</button>
+    <div id="infoModal">
+        <button id="closeInfo">×</button>
+        <div class="modal-content">
+            <!-- Content will be dynamically updated -->
+        </div>
+    </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="main.js"></script>
 </body>
